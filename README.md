@@ -10,23 +10,45 @@ when loaded by OpenCode. Node.js is needed only for the unit tests.
 
 ## Install
 
-Clone the repository to a persistent directory:
+Install directly from GitHub. OpenCode downloads the package and adds it to your
+global server configuration:
 
 ```sh
-git clone https://github.com/ecruzolivera/opencode-slash-skills.git
+opencode plugin add github:ecruzolivera/opencode-slash-skills
 ```
 
-Add this directory to the existing `plugins` array in
-`~/.config/opencode/opencode.json` or `opencode.jsonc`. Preserve other entries:
+Or add the package to the existing `plugins` array in
+`~/.config/opencode/opencode.json` or `opencode.jsonc`, preserving other entries:
 
 ```json
 {
-  "plugins": ["/path/to/opencode-slash-skills"]
+  "plugins": ["github:ecruzolivera/opencode-slash-skills"]
 }
 ```
 
 This is a server plugin, not a CLI-only plugin. Do not add it to `cli.json`.
 Valid configuration edits are normally reloaded. No service restart is needed.
+
+Update the managed installation with:
+
+```sh
+opencode plugin update github:ecruzolivera/opencode-slash-skills
+```
+
+To pin a revision, install `github:ecruzolivera/opencode-slash-skills#<full-commit-hash>`
+instead. Fully pinned revisions are not automatically updated.
+
+If migrating from a local checkout, remove its local-path entry first so only
+one installation is configured. Keep your checkout for development.
+
+### Local development
+
+```sh
+git clone https://github.com/ecruzolivera/opencode-slash-skills.git
+```
+
+Configure the checkout's absolute path in `plugins` instead of the GitHub package.
+Use only one of these installation methods at a time.
 
 ## Use
 
@@ -68,7 +90,7 @@ if necessary using the plugin's object form:
 ```json
 {
   "plugins": [{
-    "package": "/path/to/opencode-slash-skills",
+    "package": "github:ecruzolivera/opencode-slash-skills",
     "options": { "reservedNames": ["my-tui-command"] }
   }]
 }
@@ -110,14 +132,30 @@ process group is stopped during cleanup.
 Full model execution after skill loading is intentionally not tested. Neither
 test restarts or sends prompts to your existing sessions.
 
+To test the actual GitHub installation rather than your local source, run:
+
+```sh
+SLASH_SKILLS_TEST_PACKAGE=github:ecruzolivera/opencode-slash-skills npm run test:integration
+```
+
+This runs `opencode plugin add` in the temporary home, verifies the package was
+configured without the local source, and runs the same real TUI checks. It needs
+network access to download the repository. It does not change your installation.
+
 ## Remove
 
-Remove only this plugin's entry from the server configuration. Plugin cleanup
+For a managed GitHub installation:
+
+```sh
+opencode plugin remove github:ecruzolivera/opencode-slash-skills
+```
+
+For a local checkout, remove only its entry from the server configuration. Plugin cleanup
 aborts its event subscription and disposes its command registration. No generated
 commands, skill files, permissions, or desktop settings need removal.
 
 Source: <https://github.com/ecruzolivera/opencode-slash-skills>.
-The plugin is not published to npm. Use a local checkout as described above.
+The plugin is not published to npm. GitHub installation does not require an npm release.
 
 ## API references
 

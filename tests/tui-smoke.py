@@ -20,6 +20,7 @@ REPO = Path(__file__).resolve().parents[1]
 def main():
     binary = shutil.which("opencode")
     assert binary, "OpenCode V2 is required"
+    package = os.environ.get("SLASH_SKILLS_TEST_PACKAGE")
     parent = "/tmp/opencode" if Path("/tmp/opencode").is_dir() else None
     with tempfile.TemporaryDirectory(prefix="slash-skills-tui-", dir=parent) as directory:
         root = Path(directory)
@@ -41,7 +42,7 @@ def main():
                 "---\nname: " + name + "\ndescription: Isolated slash smoke fixture\n---\nTest only.\n")
         (config / "opencode.json").write_text(json.dumps({
             "$schema": "https://opencode.ai/config.json",
-            "plugins": [str(REPO), str(fixture)], "update": "disable",
+            "plugins": [str(fixture)] if package else [str(REPO), str(fixture)], "update": "disable",
         }))
         (config / "cli.json").write_text(json.dumps({
             "$schema": "https://opencode.ai/v2/cli.json", "plugins": [str(fixture)],
@@ -56,6 +57,14 @@ def main():
                     "XDG_STATE_HOME": str(root / "state"), "TERM": "xterm-256color",
                     "SLASH_TEST_REPORT": str(report_path),
                     "SLASH_TEST_ADMISSIONS": str(root / "admissions.jsonl")})
+        if package:
+            installed = subprocess.run([binary, "plugin", "add", package], cwd=root, env=env,
+                                       capture_output=True, text=True, timeout=120)
+            assert installed.returncode == 0, installed.stdout + installed.stderr
+            configured = json.loads((config / "opencode.json").read_text())["plugins"]
+            assert package in configured, configured
+            assert str(REPO) not in configured, "Package test must not load the local checkout"
+            print(f"PASS isolated plugin installation: {package}")
         master, slave = pty.openpty()
         fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 36, 120, 0, 0))
         process = subprocess.Popen([binary, "--standalone", str(root)], cwd=root, env=env,
@@ -86,7 +95,8 @@ def main():
             assert report.get("done"), "Smoke test did not complete: " + output.decode(errors="replace")[-3000:]
             assert "error" not in report, report.get("error")
             assert all(report.get(k) for k in ["autocomplete", "permissions", "nativeAttachment"]), report
-            print(f"PASS OpenCode {report['version']}: real slash autocomplete, deny/allow permission checks, "
+            print(f"PASS OpenCode {report['version']} using {package or 'local checkout'}: "
+                  "real slash autocomplete, deny/allow permission checks, "
                   "and native attachment at admission. No model prompts admitted.")
         finally:
             if process.poll() is None:
