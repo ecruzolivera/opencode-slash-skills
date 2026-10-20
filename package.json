@@ -1,0 +1,11 @@
+{
+  "name": "opencode-slash-skills",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.ts" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:integration": "python3 tests/tui-smoke.py"
+  }
+}
